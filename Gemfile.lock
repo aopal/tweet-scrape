@@ -1,0 +1,20 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    mini_portile2 (2.3.0)
+    net_http_ssl_fix (0.0.9)
+    nokogiri (1.8.1-x64-mingw32)
+      mini_portile2 (~> 2.3.0)
+
+PLATFORMS
+  x64-mingw32
+
+DEPENDENCIES
+  net_http_ssl_fix
+  nokogiri
+
+RUBY VERSION
+   ruby 2.3.3p222
+
+BUNDLED WITH
+   1.16.0
