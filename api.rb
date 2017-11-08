@@ -44,7 +44,18 @@ class TweetScraper
       STDERR.print "\r" if @verbose
 
       uri = URI("https://twitter.com/i/search/timeline?vertical=default&q=#{URI.escape(@query)}&include_available_features=1&include_entities=1&max_position=#{min_position}&reset_error_state=false")
-      page = Net::HTTP.get(uri)
+
+      stop = false
+      while(!stop)
+        begin
+          page = Net::HTTP.get(uri)
+          stop = true
+        rescue StandardError => e
+          STDERR.puts "Encountered error. retrying...", e.class,e.inspect
+          stop = false
+          sleep 0.5
+        end
+      end
       begin
         html = JSON.parse(page)["items_html"]
       rescue JSON::ParserError => e
