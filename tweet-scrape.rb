@@ -38,8 +38,6 @@ if ARGV.empty?
   exit
 end
 
-STDERR.puts options
-
 options[:query] = ARGV[0]
 
 TweetScraper.new(options).scrape()
