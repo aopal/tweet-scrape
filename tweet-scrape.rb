@@ -4,7 +4,7 @@ require './api.rb'
 options = {}
 usage = nil
 OptionParser.new do |parser|
-  parser.banner = "Usage: tweet-scrape.rb [options] SEARCH_TERM"
+  parser.banner = "Usage: tweet-scrape.rb [options] SEARCH_TERM\nBy default prints JSON formatted results to standard output\n\n"
 
   parser.on("-l", "--limit LIMIT", "Maximum number of tweets to scrape") do |lim|
     options[:limit] = lim.to_i
@@ -14,11 +14,11 @@ OptionParser.new do |parser|
     options[:pretty_print] = pretty
   end
 
-  parser.on("-f", "--file FILE", "Write to file") do |filename|
+  parser.on("-f", "--file FILE", "Write data to a file in CSV format") do |filename|
     options[:file] = filename.gsub(/[^0-9A-Za-z.\-_]/, '')
   end
 
-  parser.on("-c", "--continuous", "Continously write to file after every batch of tweets") do |c|
+  parser.on("-c", "--continuous", "Continously write/print results after every batch of tweets") do |c|
     options[:continuous] = c
   end
 
