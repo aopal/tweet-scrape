@@ -9,6 +9,7 @@ class TweetScraper
   def initialize(options)
     @limit = options[:limit]
     @pretty_print = options[:pretty_print]
+    @csv = options[:csv]
     @filename = options[:file]
     @continuous = options[:continuous]
     @verbose = options[:verbose]
@@ -37,9 +38,13 @@ class TweetScraper
 
     print_update if @verbose
 
-    if @filename
-      CSV.open(@filename, "wb") do |csv|
-        csv << @tweets[0].keys
+    if @continuous
+      if @filename
+        CSV.open(@filename, "wb") do |csv|
+          csv << @tweets[0].keys
+        end
+      else
+        puts @tweets[0].keys.join(',')
       end
     end
 
@@ -48,15 +53,14 @@ class TweetScraper
     while(!interrupted && (!@limit || @tweet_count <= @limit))
       STDERR.print "\r" if @verbose
 
-      uri = URI("https://twitter.com/i/search/timeline?vertical=default&q=#{URI.escape(@query)}&include_available_features=1&include_entities=1&max_position=#{min_position}&reset_error_state=false")
-
+      uri = URI("https://twitter.com/i/search/timeline?q=#{URI.escape(@query)}&max_position=#{min_position}")
       stop = false
       while(!stop)
         begin
           page = Net::HTTP.get(uri)
           stop = true
         rescue StandardError => e
-          STDERR.puts "Encountered error. retrying...", e.class,e.inspect if @verbose
+          STDERR.puts "Encountered error. retrying...", e.class, e.inspect if @verbose
           stop = false
           sleep 0.5
         end
@@ -93,31 +97,42 @@ class TweetScraper
     res = Nokogiri::HTML(html)
     res.css("div[class~='tweet']").map do |tweet|
       {
-        fullname:       tweet.css("strong[class~='fullname']").text.strip,
+        permalink:      "https://twitter.com" + tweet["data-permalink-path"].to_s,
+        tweet_nonce:    tweet["data-tweet-nonce"],
+        tweet_id:       tweet["data-tweet-id"],
+        user_id:        tweet["data-user-id"],
         username:       tweet.css("span[class~='username']").text.strip,
+        fullname:       tweet.css("strong[class~='fullname']").text.strip,
         posted_time:    tweet.css("span[class~='_timestamp']").first['data-time'].to_i,
         reply_count:    tweet.at_css("div[class~='ProfileTweet-actionList']").css("div[class~='ProfileTweet-action--reply']").text.scan(/([0-9]+)/).flatten[0].to_i,
         retweet_count:  tweet.at_css("div[class~='ProfileTweet-actionList']").css("div[class~='ProfileTweet-action--retweet']").text.scan(/([0-9]+)/).flatten[0].to_i,
         favorite_count: tweet.at_css("div[class~='ProfileTweet-actionList']").css("div[class~='ProfileTweet-action--favorite']").text.scan(/([0-9]+)/).flatten[0].to_i,
-        body:    "\"" + tweet.css("div[class='js-tweet-text-container']").text.strip.gsub("\n","") + "\""
+        body:           tweet.css("div[class='js-tweet-text-container']").text.strip.gsub("\n","")
       }
     end
   end
 
   def write_tweets(tweets)
+    text = @continuous ? csv_text(tweets) : json_text(tweets)
     if @filename
-      CSV.open(@filename, "ab") do |csv|
-        new_tweets.each do |tweet|
-          csv << tweet.values
-        end
+      File.open(@filename, "a") do |file|
+        file.write(text)
       end
     else
-      puts tweet_text(tweets)
+      puts text
     end
   end
 
-  def tweet_text(tweets)
+  def json_text(tweets)
     return @pretty_print ? JSON.pretty_generate(tweets) : tweets.to_json
+  end
+
+  def csv_text(tweets)
+    return CSV.generate do |csv|
+      tweets.each do |tweet|
+        csv << tweet.values
+      end
+    end
   end
 
   def print_update
